@@ -14,20 +14,15 @@ from random import randint
 import numpy as np
 NEIGHBOAR_MAPPING = {(0,1):'UP',(0,-1):'DOWN',(-1,0):'LEFT',(1,0):'RIGHT', (-1,1):'LEFT_DIAG',(1,-1):'RIGHT_DIAG'}
 COLOR_MAP = {True: "blue",False:"white"}
-#class Simworld(self,)
-'''
-def __init__(self, game_type):
-    print(f"initialized {game_type}")
 
-def produce_initial_state(self):
-    print(f"Not implemented")
 
-def generate_all_childstates_of_current_state(self, state):
-    print("Not implemented")
-#
-def is_final_state(self, state):
-    print("Not implemented")
-'''
+class Action:
+  def __init__(self,action_cells):
+    ''' Action_cells:tuple of cells where 1: empty cell, 2. cell to be removed 3: cell to be moved'''
+    self.action_cells = action_cells
+    self.action_tuple = tuple([tuple(cell.position) for cell in action_cells])
+  def __str__(self):
+    return f"{self.action_cells[0].position},{self.action_cells[1]},{self.action_cells[2]}"
 
 class Peg_Solitaire:
     def __init__(self, board_type, size,open_cells=1):
@@ -37,16 +32,19 @@ class Peg_Solitaire:
         self.board = Board(board_type,size,open_cells)  
     def is_final_state(self):
         #If there is a new win
-        return len(self.generate_all_childstates()) == 0
+        return len(self.legal_actions()) == 0
     def collect_reward(self):
       '''How shall reward be given?'''
+      if not self.is_final_state():
+        return 0
+      
       remaining_cells = 0
       for cell in np.hstack(self.board.cells):
           if cell.state:
               remaining_cells+=1
       win  = remaining_cells==1
-      return win
-    def generate_all_childstates(self):
+      return str(win) if win else -1
+    def legal_actions(self):
         action_space = []
         empty_cells = self.board.get_empty_cells()
         for cell in empty_cells:
@@ -55,16 +53,23 @@ class Peg_Solitaire:
                     continue
                 if pos in neig.neighboars.keys():
                     if neig.neighboars[pos].state==True:
-                        action_cells = (cell,neig,neig.neighboars[pos])
-                        action_space.append(action_cells)
+                        action = Action((cell,neig,neig.neighboars[pos]))
+                        action_space.append(action.action_tuple)
         return action_space                  
-    def do_action(self,action_cells):
-        action_cells[0].state=True
-        action_cells[1].state=False
-        action_cells[2].state=False
+    def step(self,action):
+      if action not in self.legal_actions():
+        print("Trying to do illegal action")
+      action_cells = [self.board.cell_from_position(position) for position in action]
+      action_cells[0].state=True
+      action_cells[1].state=False
+      action_cells[2].state=False
+      return self.board.to_tuple(),self.collect_reward(), self.is_final_state()
     def action_to_string(self,action_cells):
         return f"Flytte brikke på posisjon {action_cells[2]} til posisjon {action_cells[0]} of fjerne {action_cells[1]}"
-             
+    def get_state(self):
+      return self.board.to_tuple()
+    def reset(self):
+      self.__init__(self.board_type,self.size, self.open_cells)
 class Cell:
     def __init__(self,state:bool,position):
         self.state = state
@@ -116,30 +121,19 @@ class Board:
                         cells[i][j].neighboars[position] = cells[adjx][adjy]
                     except:
                         continue
-    def to_array(self):
-      l =[]
+    def cell_from_position(self,position):
+      cells = np.hstack(self.cells)
+      for cell in cells:
+        if cell.position[0]==position[0] and cell.position[1]==position[1]:
+          return cell
+    def to_tuple(self):
+      l = []
       for row in self.cells:
-        row = [int(cell.state) for cell in row]
-        l.append(row)
-      return np.array(l) 
-    def update_from_array(self, array):
-    def visualize(self):
-        cells = np.hstack(self.cells)
-        G = nx.Graph()
-        G.add_nodes_from(cells)
-        for cell in cells:
-            for pos, neighboar in cell.neighboars.items():
-                G.add_edge(cell, neighboar)
-        
-        positions = {cell:[cell.position[0],cell.position[1]] for cell in cells}
-        colors= []
-        for node in G:
-            colors.append(COLOR_MAP[node.state])
-        fig = plt.figure()
-        nx.draw(G,pos=positions,ax=fig.add_subplot(),node_color=colors)
-        return fig
+        l.append(tuple([int(cell.state) for cell in row]))
+      return tuple(l)
 
-def visualize_state(Board):
+def visualize_state(environment):
+  Board = environment.board
   cells = np.hstack(Board.cells)
   G = nx.Graph()
   G.add_nodes_from(cells)
