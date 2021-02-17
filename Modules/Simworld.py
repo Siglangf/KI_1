@@ -25,7 +25,7 @@ class Action:
     return f"{self.action_cells[0].position},{self.action_cells[1]},{self.action_cells[2]}"
 
 class Peg_Solitaire:
-    def __init__(self, board_type, size,open_cells=1):
+    def __init__(self, board_type, size,open_cells):
         self.board_type = board_type
         self.size=size
         self.open_cells = open_cells
@@ -43,7 +43,7 @@ class Peg_Solitaire:
           if cell.state:
               remaining_cells+=1
       win  = remaining_cells==1
-      return str(win) if win else -1
+      return 1 if win else -remaining_cells
     def legal_actions(self):
         action_space = []
         empty_cells = self.board.get_empty_cells()
@@ -87,8 +87,7 @@ class Board:
         self.board_type = board_type
         self.size = size
         self.open_cells = open_cells
-        center_X = size//2
-        center_Y = size//2 if board_type=="diamond" else size//4
+
         #Initializing cell object
         if board_type=="triangle":
             self.cells = np.array([[Cell(True,[j,i]) for i in range(size-j)] for j in range(self.size)],dtype=object)
@@ -98,11 +97,10 @@ class Board:
             raise ValueError("Board type must be 'triangle' or 'diamond'")
         
         self.connect_adjacent()
-        #Make sure at least one is in the center
-        self.cells[center_X][center_Y].state = False
-        #Choose the remaining empty spots
-        for cell in np.random.choice(np.hstack(np.delete(self.cells,[center_X,center_Y])),self.open_cells-1, replace=False):
-            cell.state=False
+        #Initial open cells
+        for cell in self.open_cells:
+            self.cell_from_position(cell).state = False
+
     def get_empty_cells(self):
         return [cell for cell in np.hstack(self.cells) if cell.state==False]
     def connect_adjacent(self):
@@ -114,7 +112,7 @@ class Board:
                 for delta,position in NEIGHBOAR_MAPPING.items():
                     adjx = i+delta[0]
                     adjy = j+delta[1]
-                    #Make sure avoiding negative index referances
+                    #Avoiding negative index referances
                     if adjx<0 or adjy<0:
                         continue
                     try:
@@ -148,4 +146,5 @@ def visualize_state(environment):
       colors.append(COLOR_MAP[node.state])
   fig = plt.figure()
   nx.draw(G,pos=positions,ax=fig.add_subplot(),node_color=colors)
+  plt.close()
   return fig
