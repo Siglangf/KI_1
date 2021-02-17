@@ -6,6 +6,7 @@ import operator
 from tensorflow import keras
 import tensorflow as tf
 from Modules.SplitGD import SplitGD
+import pandas as pd
 
 
 class Actor:
@@ -65,6 +66,20 @@ class Actor:
             if (state, action) not in self.policy.keys():
                 self.policy[(state, action)] = 0
 
+    def _repr_html_(self):
+        header = "<h4> Actor <h4>"
+        meta_data = {
+            "Discount factor": self.discount_factor,
+            "Learning rate": self.learning_rate,
+            "Eligibility decay": self.eligibility_decay,
+            "Epsilon decay degree": self.epsilon_decay_degree,
+            "Strategy": self.strategy,
+            "States discovered": len(self.policy.keys())
+        }
+        df = pd.DataFrame.from_dict(meta_data, orient='index')
+        df = df.rename(columns={0: "Parameters"})
+        return header + df._repr_html_()
+
 
 class Critic:
     def __init__(self, learning_rate, eligibility_decay, discount_factor):
@@ -92,6 +107,18 @@ class Critic:
 
     def reset_eligibility(self):
         self.eligibility = {}
+
+    def _repr_html_(self):
+        header = "<h4> Critic with table lookup <h4>"
+        meta_data = {
+            "Discount factor": self.discount_factor,
+            "Learning rate": self.learning_rate,
+            "Eligibility decay": self.eligibility_decay,
+            "States discovered": len(self.value_function.keys())
+        }
+        df = pd.DataFrame.from_dict(meta_data, orient='index')
+        df = df.rename(columns={0: "Parameters"})
+        return header + df._repr_html_()
 
 
 class Critic_NN:
@@ -134,6 +161,18 @@ class Critic_NN:
 
     def reset_eligibility(self):
         self.value_function.weight_eligibility = None
+
+    def _repr_html_(self):
+        header = "<h4> Critic using neuralnet <h4>"
+        meta_data = {
+            "Discount factor": self.discount_factor,
+            "Learning rate": self.learning_rate,
+            "Eligibility decay": self.eligibility_decay,
+        }
+        self.value_function.model.summary()
+        df = pd.DataFrame.from_dict(meta_data, orient='index')
+        df = df.rename(columns={0: "Parameters"})
+        return header + df._repr_html_()
 
 
 class Value_Function(SplitGD):

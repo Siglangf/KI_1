@@ -34,16 +34,16 @@ class Peg_Solitaire:
         #If there is a new win
         return len(self.legal_actions()) == 0
     def collect_reward(self):
-      '''How shall reward be given?'''
-      if not self.is_final_state():
-        return 0
-      
-      remaining_cells = 0
-      for cell in np.hstack(self.board.cells):
-          if cell.state:
-              remaining_cells+=1
-      win  = remaining_cells==1
-      return 1 if win else -remaining_cells
+        '''How shall reward be given?'''
+        if not self.is_final_state():
+            return 0
+
+        remaining_cells = 0
+        for cell in np.hstack(self.board.cells):
+            if cell.state:
+                remaining_cells+=1
+        win  = remaining_cells==1
+        return 1 if win else -remaining_cells
     def legal_actions(self):
         action_space = []
         empty_cells = self.board.get_empty_cells()
